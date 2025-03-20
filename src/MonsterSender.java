@@ -1,30 +1,17 @@
-package src;
-
-import jakarta.jms.Connection;
-import jakarta.jms.ConnectionFactory;
-import jakarta.jms.Destination;
-import jakarta.jms.JMSException;
-import jakarta.jms.MessageProducer;
-import jakarta.jms.Session;
-import jakarta.jms.TextMessage;
-
-import org.apache.activemq.ActiveMQConnection;
+import jakarta.jms.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterSender {
 
-    //private static String url = ActiveMQConnection.DEFAULT_BROKER_URL;
-    private static String url = "tcp://192.168.100.12:61616";
-    // default broker URL is : tcp://localhost:61616"
-    private static String subject = "Monsters"; // Topic Name. You can create any/many topic names as per your requirement.
-    private final int k = 1000;
+    private static String url = "tcp://localhost:61616"; // IP y puerto del broker JMS
+    private static String subject = "Monsters";          // Nombre del tópico
     private static final int WIN_CONDITION = 5;
+    private final int k = 1000;
 
     private ConcurrentHashMap<String, Integer> playerScore = new ConcurrentHashMap<>();
     private MessageProducer producer;
@@ -64,19 +51,20 @@ public class MonsterSender {
     private void sendMonster(int id, int x, int y) throws JMSException {
         TextMessage message = session.createTextMessage(id + " " + x + " " + y);
         producer.send(message);
-        System.out.println("Sending monster ID: " + id + " in position: " + x + ", " + y);
+        System.out.println("Sending monster ID: " + id + " at position: " + x + ", " + y);
     }
 
     private void sendWinner(String player) throws JMSException {
         TextMessage message = session.createTextMessage("WINNER " + player);
         producer.send(message);
-        System.out.println(player + " won the game");
+        System.out.println(player + " won the game!");
+        resetGame();
     }
 
     public void startTCPServer(int port) {
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("TCP Server started with port " + port);
+                System.out.println("TCP Server started on port " + port);
                 while (true) {
                     Socket clientSocket = serverSocket.accept();
                     new Thread(new PlayerHandler(clientSocket)).start();
@@ -99,11 +87,27 @@ public class MonsterSender {
         public void run() {
             try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-                out.println("WELCOME TO THE MONSTERS");
-                out.println("Write your name");
+
+                // Mensajes de bienvenida y solicitud de nombre
+                out.println("WELCOME TO MONSTERS");
+                out.println("Enter your name:");
+
+                // Leer el nombre
                 playerName = in.readLine();
+                if (playerName == null || playerName.trim().isEmpty()) {
+                    socket.close();
+                    return;
+                }
+
+                // Registrar al jugador si no existe
                 playerScore.putIfAbsent(playerName, 0);
-                out.println("Welcome " + playerName + "!");
+
+                // Respuesta de registro: incluye info del juego
+                out.println("Welcome " + playerName + "! Your current score: " + playerScore.get(playerName));
+                // Enviamos información necesaria para jugar:
+                out.println("INFO BROKER_URL=" + url + " TOPIC=" + subject);
+
+                // Leer y procesar golpes
                 String input;
                 while ((input = in.readLine()) != null) {
                     if (input.equalsIgnoreCase("exit")) break;
@@ -121,24 +125,21 @@ public class MonsterSender {
     private void processHit(String playerName, String input) throws JMSException {
         String[] tokens = input.split(" ");
         if (tokens.length == 3) {
-            int id = Integer.parseInt(tokens[1]);
-            long time = Long.parseLong(tokens[2]);
+            int x = Integer.parseInt(tokens[1]);
 
-            int newScore = playerScore.get(playerName) + 1;
-            playerScore.put(playerName, newScore);
-            System.out.println(playerName + " has scored " + id + " on " + time + "ms. Points: " + newScore);
+            int newScore = playerScore.compute(playerName, (key, value) -> (value == null ? 1 : value + 1));
+            System.out.println(playerName + " hit monster at " + x + ". Score: " + newScore);
+
             if (newScore >= WIN_CONDITION) {
                 sendWinner(playerName);
-                resetGame();
             }
         }
     }
 
     private void resetGame() {
-        playerScore.clear();
+        playerScore.replaceAll((player, score) -> 0);
         System.out.println("Restarting game...");
     }
-
 
     public static void main(String[] args) {
         MonsterSender sender = new MonsterSender();
