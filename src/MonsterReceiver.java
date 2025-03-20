@@ -1,3 +1,5 @@
+package src;
+
 import jakarta.jms.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import javax.swing.*;
@@ -8,7 +10,7 @@ import java.net.Socket;
 public class MonsterReceiver {
     // Por defecto, sabemos el IP/puerto del servidor de registro
     private static final String SERVER_IP = "localhost";
-    private static final int SERVER_PORT = 5000;
+    private static final int SERVER_PORT = 50000;
 
     // Inicialmente, podemos dejar estos en null/valores por defecto;
     // luego los rellenamos con lo que envíe el servidor.
