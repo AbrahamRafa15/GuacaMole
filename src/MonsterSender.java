@@ -10,7 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MonsterSender {
 
-    private static String url = "tcp://localhost:61616"; // IP y puerto del broker JMS
+    private static String url = "tcp://10.10.9.81:61616"; // IP y puerto del broker JMS
+    //private static String url = "tcp://localhost:61616"; // IP y puerto del broker JMS en caso de usar la máquina local
     private static String subject = "Monsters";          // Nombre del tópico
     private static final int WIN_CONDITION = 5;
     private final int k = 1000;
@@ -145,7 +146,7 @@ public class MonsterSender {
 
     public static void main(String[] args) {
         MonsterSender sender = new MonsterSender();
-        sender.startTCPServer(5000);
+        sender.startTCPServer(50000);
         sender.startGame();
     }
 }

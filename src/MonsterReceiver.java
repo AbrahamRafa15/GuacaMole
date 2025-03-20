@@ -9,12 +9,14 @@ import java.net.Socket;
 
 public class MonsterReceiver {
     // Por defecto, sabemos el IP/puerto del servidor de registro
-    private static final String SERVER_IP = "localhost";
+    private static final String SERVER_IP = "10.10.9.81";
+    //private static final String SERVER_IP = "localhost"; //Para utilizar con una máquina local
     private static final int SERVER_PORT = 50000;
 
     // Inicialmente, podemos dejar estos en null/valores por defecto;
     // luego los rellenamos con lo que envíe el servidor.
-    private String brokerUrl = "tcp://localhost:61616";
+    private String brokerUrl = "tcp://10.10.9.81:61616";
+    //private String brokerUrl = "tcp://localhost:61616"; //Para utilizar con una máquina local
     private String topicName = "Monsters";
 
     private JFrame frame;
@@ -191,6 +193,8 @@ public class MonsterReceiver {
         SwingUtilities.invokeLater(() -> {
             buttons[x][y].setText("👾");
             buttons[x][y].setEnabled(true);
+
+            new Timer(1000, e -> hideMonster(x, y)).start();
         });
     }
 

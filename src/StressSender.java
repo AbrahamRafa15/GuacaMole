@@ -1,3 +1,5 @@
+package src;
+
 import jakarta.jms.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
